@@ -11,9 +11,11 @@ git fetch --no-tags upstream main
 OLD_LOCAL=$(git rev-parse HEAD)
 UPSTREAM=$(git rev-parse upstream/main)
 
-# The upstream head we last vendored is recorded as the second parent
-# of our current merge commit (empty string on the very first run).
-LAST_UPSTREAM=$(git rev-parse --verify --quiet HEAD^2 || true)
+# The upstream head we last vendored is the best common ancestor of our
+# history and upstream: it was recorded as a parent of an earlier merge
+# commit, so it stays reachable no matter how many local commits sit on
+# top of it. Empty string on the very first run (unrelated histories).
+LAST_UPSTREAM=$(git merge-base HEAD upstream/main || true)
 
 if [ "$UPSTREAM" = "$LAST_UPSTREAM" ]; then
   echo "No new upstream commits (upstream@${UPSTREAM}). Nothing to do."
