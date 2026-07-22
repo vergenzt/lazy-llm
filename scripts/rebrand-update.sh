@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail  # https://sipb.mit.edu/doc/safe-shell/
+set -x
 
-if ! git remote get-url upstream 2>/dev/null; then
+if ! git remote get-url upstream >/dev/null; then
   git remote add upstream https://github.com/DietrichGebert/ponytail.git
 fi
 
@@ -50,3 +51,7 @@ MERGE=$(git commit-tree "$TREE" \
 # *does* edit a workflow file, this push fails on purpose -- rerun after
 # updating the affected file (and the rebrand mapping) by hand.
 git push origin "${MERGE}:refs/heads/main"
+
+# Leave local state on the newly pushed main (we were on a detached HEAD).
+# The worktree already matches MERGE's tree, so this is a no-op checkout.
+git checkout -B main "$MERGE"
