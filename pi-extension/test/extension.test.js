@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import ponytailExtension from "../index.js";
+import lazyExtension from "../index.js";
 
 function createPiHarness() {
   const events = new Map();
@@ -27,7 +27,7 @@ function createPiHarness() {
     },
   };
 
-  ponytailExtension(pi);
+  lazyExtension(pi);
   return { events, commands, appendedEntries, sentUserMessages };
 }
 
@@ -41,7 +41,7 @@ function createCommandContext(overrides = {}) {
 }
 
 function withTempConfig(fn) {
-  const tempConfigHome = mkdtempSync(join(tmpdir(), "ponytail-test-"));
+  const tempConfigHome = mkdtempSync(join(tmpdir(), "lazy-test-"));
   const previousXdg = process.env.XDG_CONFIG_HOME;
   const previousHide = process.env.PONYTAIL_HIDE_STATUS;
   process.env.XDG_CONFIG_HOME = tempConfigHome;
@@ -58,21 +58,21 @@ function withTempConfig(fn) {
     });
 }
 
-test("extension registers Ponytail commands", () => {
+test("extension registers Lazy LLM commands", () => {
   const { commands } = createPiHarness();
 
-  assert.deepEqual([...commands.keys()].sort(), ["ponytail", "ponytail-audit", "ponytail-debt", "ponytail-gain", "ponytail-help", "ponytail-review"]);
+  assert.deepEqual([...commands.keys()].sort(), ["lazy", "lazy-audit", "lazy-debt", "lazy-gain", "lazy-help", "lazy-review"]);
 });
 
-test("/ponytail updates session mode and injects instructions", async () => withTempConfig(async () => {
+test("/lazy updates session mode and injects instructions", async () => withTempConfig(async () => {
   const { commands, events, appendedEntries } = createPiHarness();
   const ctx = createCommandContext();
 
   await events.get("session_start")({ reason: "startup" }, ctx);
-  await commands.get("ponytail").handler("ultra", ctx);
+  await commands.get("lazy").handler("ultra", ctx);
 
   assert.deepEqual(appendedEntries.at(-1), {
-    customType: "ponytail-mode",
+    customType: "lazy-mode",
     data: { mode: "ultra" },
   });
 
@@ -109,7 +109,7 @@ test("session_start restores latest persisted mode", async () => withTempConfig(
   const ctx = createCommandContext({
     sessionManager: {
       getEntries: () => [
-        { type: "custom", customType: "ponytail-mode", data: { mode: "lite" } },
+        { type: "custom", customType: "lazy-mode", data: { mode: "lite" } },
       ],
     },
   });
@@ -124,18 +124,18 @@ test("skill alias commands delegate to Pi skill commands", async () => {
   const { commands, sentUserMessages } = createPiHarness();
   const ctx = createCommandContext();
 
-  await commands.get("ponytail-review").handler("", ctx);
-  await commands.get("ponytail-audit").handler("", ctx);
-  await commands.get("ponytail-debt").handler("", ctx);
-  await commands.get("ponytail-gain").handler("", ctx);
-  await commands.get("ponytail-help").handler("", ctx);
+  await commands.get("lazy-review").handler("", ctx);
+  await commands.get("lazy-audit").handler("", ctx);
+  await commands.get("lazy-debt").handler("", ctx);
+  await commands.get("lazy-gain").handler("", ctx);
+  await commands.get("lazy-help").handler("", ctx);
 
   assert.deepEqual(sentUserMessages.map((entry) => entry.text), [
-    "/skill:ponytail-review",
-    "/skill:ponytail-audit",
-    "/skill:ponytail-debt",
-    "/skill:ponytail-gain",
-    "/skill:ponytail-help",
+    "/skill:lazy-review",
+    "/skill:lazy-audit",
+    "/skill:lazy-debt",
+    "/skill:lazy-gain",
+    "/skill:lazy-help",
   ]);
 });
 
@@ -144,7 +144,7 @@ test("normal mode disables persistent instructions", async () => withTempConfig(
   const ctx = createCommandContext();
 
   await events.get("session_start")({ reason: "startup" }, ctx);
-  await commands.get("ponytail").handler("ultra", ctx);
+  await commands.get("lazy").handler("ultra", ctx);
   await events.get("input")({ text: "normal mode", source: "interactive" }, ctx);
 
   const disabled = await events.get("before_agent_start")({ systemPrompt: "BASE" }, ctx);
@@ -156,7 +156,7 @@ test("a request mentioning normal mode stays active", async () => withTempConfig
   const ctx = createCommandContext();
 
   await events.get("session_start")({ reason: "startup" }, ctx);
-  await commands.get("ponytail").handler("ultra", ctx);
+  await commands.get("lazy").handler("ultra", ctx);
   await events.get("input")({ text: "add a normal mode toggle next to dark mode", source: "interactive" }, ctx);
 
   const result = await events.get("before_agent_start")({ systemPrompt: "BASE" }, ctx);
@@ -167,14 +167,14 @@ test("status bar renders the mode and flips active on agent_start", async () => 
   const { events } = createPiHarness();
   const statusWrites = [];
   const ctx = createCommandContext({
-    sessionManager: { getEntries: () => [{ type: "custom", customType: "ponytail-mode", data: { mode: "ultra" } }] },
+    sessionManager: { getEntries: () => [{ type: "custom", customType: "lazy-mode", data: { mode: "ultra" } }] },
     ui: { notify() {}, setStatus: (key, text) => statusWrites.push({ key, text }), theme: { fg: (_color, text) => text } },
   });
 
   await events.get("session_start")({ reason: "resume" }, ctx);
   await events.get("agent_start")({}, ctx);
 
-  assert.equal(statusWrites.at(-2).key, "ponytail");
+  assert.equal(statusWrites.at(-2).key, "lazy");
   assert.match(statusWrites.at(-2).text, /○.*ULTRA/);
   assert.match(statusWrites.at(-1).text, /●.*ULTRA/);
 }));
@@ -183,7 +183,7 @@ test("status bar stays silent when ui lacks a theme", async () => withTempConfig
   const { events } = createPiHarness();
   const calls = [];
   const ctx = createCommandContext({
-    sessionManager: { getEntries: () => [{ type: "custom", customType: "ponytail-mode", data: { mode: "ultra" } }] },
+    sessionManager: { getEntries: () => [{ type: "custom", customType: "lazy-mode", data: { mode: "ultra" } }] },
     ui: { notify() {}, setStatus: (_key, text) => calls.push(text) }, // setStatus present, theme absent
   });
 
@@ -193,12 +193,12 @@ test("status bar stays silent when ui lacks a theme", async () => withTempConfig
   assert.deepEqual(calls, []);
 }));
 
-test("PONYTAIL_HIDE_STATUS hides the indicator but keeps ponytail active (#324)", async () => withTempConfig(async () => {
+test("PONYTAIL_HIDE_STATUS hides the indicator but keeps lazy active (#324)", async () => withTempConfig(async () => {
   process.env.PONYTAIL_HIDE_STATUS = "1";
   const { events } = createPiHarness();
   const statusWrites = [];
   const ctx = createCommandContext({
-    sessionManager: { getEntries: () => [{ type: "custom", customType: "ponytail-mode", data: { mode: "ultra" } }] },
+    sessionManager: { getEntries: () => [{ type: "custom", customType: "lazy-mode", data: { mode: "ultra" } }] },
     ui: { notify() {}, setStatus: (key, text) => statusWrites.push({ key, text }), theme: { fg: (_c, t) => t } },
   });
 
@@ -210,9 +210,9 @@ test("PONYTAIL_HIDE_STATUS hides the indicator but keeps ponytail active (#324)"
   assert.match(injected.systemPrompt, /PONYTAIL MODE ACTIVE/, "ruleset must still inject while status is hidden");
 }));
 
-test("config.hideStatus hides the indicator but keeps ponytail active (#324)", async () => withTempConfig(async () => {
-  mkdirSync(join(process.env.XDG_CONFIG_HOME, "ponytail"), { recursive: true });
-  writeFileSync(join(process.env.XDG_CONFIG_HOME, "ponytail", "config.json"), JSON.stringify({ hideStatus: true }));
+test("config.hideStatus hides the indicator but keeps lazy active (#324)", async () => withTempConfig(async () => {
+  mkdirSync(join(process.env.XDG_CONFIG_HOME, "lazy"), { recursive: true });
+  writeFileSync(join(process.env.XDG_CONFIG_HOME, "lazy", "config.json"), JSON.stringify({ hideStatus: true }));
   const { events } = createPiHarness();
   const statusWrites = [];
   const ctx = createCommandContext({
@@ -232,7 +232,7 @@ test("PONYTAIL_HIDE_STATUS=0 does not hide the indicator", async () => withTempC
   const { events } = createPiHarness();
   const statusWrites = [];
   const ctx = createCommandContext({
-    sessionManager: { getEntries: () => [{ type: "custom", customType: "ponytail-mode", data: { mode: "ultra" } }] },
+    sessionManager: { getEntries: () => [{ type: "custom", customType: "lazy-mode", data: { mode: "ultra" } }] },
     ui: { notify() {}, setStatus: (key, text) => statusWrites.push({ key, text }), theme: { fg: (_c, t) => t } },
   });
 

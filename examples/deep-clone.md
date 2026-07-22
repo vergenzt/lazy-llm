@@ -2,7 +2,7 @@
 
 **Task:** "Deep clone this object."
 
-## Without Ponytail
+## Without Lazy LLM
 
 ```bash
 npm install lodash
@@ -21,10 +21,10 @@ Or the classic hack:
 const copy = JSON.parse(JSON.stringify(original));
 ```
 
-## With Ponytail
+## With Lazy LLM
 
 ```js
-// ponytail: structuredClone does this
+// tech debt: structuredClone does this
 const copy = structuredClone(original);
 ```
 

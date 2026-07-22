@@ -9,21 +9,21 @@ const path = require('path');
 
 const root = path.join(__dirname, '..');
 const REQUIRED_COMMAND_FILES = [
-  'ponytail.toml',
-  'ponytail-review.toml',
-  'ponytail-audit.toml',
-  'ponytail-debt.toml',
-  'ponytail-gain.toml',
-  'ponytail-help.toml',
+  'lazy.toml',
+  'lazy-review.toml',
+  'lazy-audit.toml',
+  'lazy-debt.toml',
+  'lazy-gain.toml',
+  'lazy-help.toml',
 ];
 
 function readJSON(relPath) {
   return JSON.parse(fs.readFileSync(path.join(root, relPath), 'utf8'));
 }
 
-test('copilot plugin command directory includes ponytail-debt', () => {
+test('copilot plugin command directory includes lazy-debt', () => {
   const manifest = readJSON('.github/plugin/plugin.json');
-  assert.equal(manifest.name, 'ponytail');
+  assert.equal(manifest.name, 'lazy');
   assert.equal(manifest.commands, 'commands/');
 
   for (const file of REQUIRED_COMMAND_FILES) {

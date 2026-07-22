@@ -1,14 +1,14 @@
 {
-  "name": "ponytail",
+  "name": "lazy",
   "interface": {
-    "displayName": "Ponytail"
+    "displayName": "Lazy LLM"
   },
   "plugins": [
     {
-      "name": "ponytail",
+      "name": "lazy",
       "source": {
         "source": "url",
-        "url": "https://github.com/DietrichGebert/ponytail.git",
+        "url": "https://github.com/DietrichGebert/lazy.git",
         "ref": "main"
       },
       "policy": {

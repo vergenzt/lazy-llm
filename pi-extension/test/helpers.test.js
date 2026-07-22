@@ -6,36 +6,36 @@ import test from "node:test";
 
 import {
   filterSkillBodyForMode,
-  parsePonytailCommand,
+  parseLazyLLMCommand,
   readDefaultMode,
   readQuietStartup,
   resolveSessionMode,
   writeDefaultMode,
 } from "../index.js";
 
-test("parsePonytailCommand falls back to full when invoked bare and default is off", () => {
-  assert.deepEqual(parsePonytailCommand("", "off"), { type: "set-mode", mode: "full" });
+test("parseLazyLLMCommand falls back to full when invoked bare and default is off", () => {
+  assert.deepEqual(parseLazyLLMCommand("", "off"), { type: "set-mode", mode: "full" });
 });
 
-test("parsePonytailCommand parses modes, status, and default subcommand", () => {
-  assert.deepEqual(parsePonytailCommand("ultra", "full"), { type: "set-mode", mode: "ultra" });
-  assert.deepEqual(parsePonytailCommand("status", "full"), { type: "status" });
-  assert.deepEqual(parsePonytailCommand("default lite", "full"), { type: "set-default", mode: "lite" });
+test("parseLazyLLMCommand parses modes, status, and default subcommand", () => {
+  assert.deepEqual(parseLazyLLMCommand("ultra", "full"), { type: "set-mode", mode: "ultra" });
+  assert.deepEqual(parseLazyLLMCommand("status", "full"), { type: "status" });
+  assert.deepEqual(parseLazyLLMCommand("default lite", "full"), { type: "set-default", mode: "lite" });
 });
 
-test("parsePonytailCommand rejects review as a default (session-only mode, #377)", () => {
-  assert.deepEqual(parsePonytailCommand("default review", "full"), { type: "invalid", reason: "invalid-default-mode" });
+test("parseLazyLLMCommand rejects review as a default (session-only mode, #377)", () => {
+  assert.deepEqual(parseLazyLLMCommand("default review", "full"), { type: "invalid", reason: "invalid-default-mode" });
 });
 
 test("resolveSessionMode still honors review as a session mode (not a default)", () => {
-  const entries = [{ type: "custom", customType: "ponytail-mode", data: { mode: "review" } }];
+  const entries = [{ type: "custom", customType: "lazy-mode", data: { mode: "review" } }];
   assert.equal(resolveSessionMode(entries, "full"), "review");
 });
 
 test("resolveSessionMode prefers latest persisted session mode", () => {
   const entries = [
-    { type: "custom", customType: "ponytail-mode", data: { mode: "lite" } },
-    { type: "custom", customType: "ponytail-mode", data: { mode: "ultra" } },
+    { type: "custom", customType: "lazy-mode", data: { mode: "lite" } },
+    { type: "custom", customType: "lazy-mode", data: { mode: "ultra" } },
   ];
 
   assert.equal(resolveSessionMode(entries, "full"), "ultra");
@@ -49,10 +49,10 @@ test("resolveSessionMode returns fallback when entries is not an array", () => {
 });
 
 test("readDefaultMode and writeDefaultMode use XDG config path", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "ponytail-config-"));
+  const tempDir = mkdtempSync(join(tmpdir(), "lazy-config-"));
   const previousXdg = process.env.XDG_CONFIG_HOME;
   const previousDefault = process.env.PONYTAIL_DEFAULT_MODE;
-  const configPath = join(tempDir, "ponytail", "config.json");
+  const configPath = join(tempDir, "lazy", "config.json");
   process.env.XDG_CONFIG_HOME = tempDir;
   delete process.env.PONYTAIL_DEFAULT_MODE;
 
@@ -72,10 +72,10 @@ test("readDefaultMode and writeDefaultMode use XDG config path", () => {
 });
 
 test("readQuietStartup resolves env var, config file, and default in that order", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "ponytail-quiet-"));
+  const tempDir = mkdtempSync(join(tmpdir(), "lazy-quiet-"));
   const previousXdg = process.env.XDG_CONFIG_HOME;
   const previousEnv = process.env.PONYTAIL_QUIET_STARTUP;
-  const configDir = join(tempDir, "ponytail");
+  const configDir = join(tempDir, "lazy");
   const configPath = join(configDir, "config.json");
   process.env.XDG_CONFIG_HOME = tempDir;
   delete process.env.PONYTAIL_QUIET_STARTUP;
@@ -106,7 +106,7 @@ test("readQuietStartup resolves env var, config file, and default in that order"
 test("filterSkillBodyForMode keeps only requested intensity examples and rows", () => {
   // Examples are quoted in the real SKILL.md (`- lite: "..."`) — match that
   // shape here too; see the next test for why the quote is load-bearing.
-  const body = `---\nname: ponytail\n---\n| **lite** | keep lite |\n| **full** | keep full |\n| **ultra** | keep ultra |\n- lite: "Lite example"\n- full: "Full example"\n- ultra: "Ultra example"\nOther line`;
+  const body = `---\nname: lazy\n---\n| **lite** | keep lite |\n| **full** | keep full |\n| **ultra** | keep ultra |\n- lite: "Lite example"\n- full: "Full example"\n- ultra: "Ultra example"\nOther line`;
 
   const filtered = filterSkillBodyForMode(body, "ultra");
 
@@ -134,16 +134,16 @@ test("filterSkillBodyForMode does not drop a rule bullet whose label matches a m
 
 test("filterSkillBodyForMode keeps rule bullets that contain a colon", () => {
   // Regression: rule bullets outside the Intensity section (e.g. the
-  // "No unrequested abstractions:" rule or the `ponytail:` comment convention)
+  // "No unrequested abstractions:" rule or the `tech debt:` comment convention)
   // contain a colon and must not be mistaken for mode-example lines.
-  const skillPath = new URL("../../skills/ponytail/SKILL.md", import.meta.url);
+  const skillPath = new URL("../../skills/lazy/SKILL.md", import.meta.url);
   const body = readFileSync(skillPath, "utf8");
 
   const filtered = filterSkillBodyForMode(body, "full");
 
   assert.ok(filtered.includes("No unrequested abstractions"));
   assert.ok(filtered.includes("Mark deliberate simplifications that cut a real corner"));
-  assert.ok(filtered.includes("`ponytail:` comment naming the ceiling and upgrade path"));
+  assert.ok(filtered.includes("`tech debt:` comment naming the ceiling and upgrade path"));
   // The Intensity examples are still filtered down to the active mode.
   assert.ok(filtered.includes('full: "`@lru_cache'));
   assert.ok(!filtered.includes('lite: "Done'));

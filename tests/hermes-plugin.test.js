@@ -10,12 +10,12 @@ const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-const commands = ['ponytail', 'ponytail-review', 'ponytail-audit', 'ponytail-debt', 'ponytail-gain', 'ponytail-help'];
-const skillCommands = commands.filter((name) => name !== 'ponytail');
+const commands = ['lazy', 'lazy-review', 'lazy-audit', 'lazy-debt', 'lazy-gain', 'lazy-help'];
+const skillCommands = commands.filter((name) => name !== 'lazy');
 
 const root = path.join(__dirname, '..');
 
-// ponytail: probe once; on Windows `python3` is the Store-alias stub that fails
+// tech debt: probe once; on Windows `python3` is the Store-alias stub that fails
 // even when Python is installed, so fall back to `python` (mirrors benchmarks/correctness.js).
 let pythonCmd;
 function pythonExe() {
@@ -49,7 +49,7 @@ test('Hermes plugin manifest matches runtime skills, hooks, commands, and packag
     .filter((name) => fs.existsSync(path.join(root, 'skills', name, 'SKILL.md')))
     .sort();
 
-  assert.match(manifest, /^name:\s*ponytail$/m);
+  assert.match(manifest, /^name:\s*lazy$/m);
   assert.match(manifest, new RegExp(`^version:\\s*${packageJson.version}$`, 'm'));
   assert.match(manifest, new RegExp(`^author:\\s*${packageJson.author.name}$`, 'm'));
   assert.deepEqual(commands.filter((name) => manifest.includes(`  - ${name}`)), commands);
@@ -58,10 +58,10 @@ test('Hermes plugin manifest matches runtime skills, hooks, commands, and packag
   assert.match(manifest, /pre_gateway_dispatch/);
 });
 
-test('Hermes plugin registers every shipped skill under the ponytail namespace', () => {
+test('Hermes plugin registers every shipped skill under the lazy namespace', () => {
   const output = python(String.raw`
 import importlib.util, json, pathlib
-spec = importlib.util.spec_from_file_location('ponytail_hermes_plugin', '__init__.py')
+spec = importlib.util.spec_from_file_location('lazy_hermes_plugin', '__init__.py')
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 class Ctx:
@@ -81,24 +81,24 @@ print(json.dumps({'skills': ctx.skills, 'hooks': ctx.hooks, 'commands': ctx.comm
 `);
   const data = JSON.parse(output);
   assert.deepEqual(data.skills.map(([name]) => name).sort(), [
-    'ponytail',
-    'ponytail-audit',
-    'ponytail-debt',
-    'ponytail-gain',
-    'ponytail-help',
-    'ponytail-review',
+    'lazy',
+    'lazy-audit',
+    'lazy-debt',
+    'lazy-gain',
+    'lazy-help',
+    'lazy-review',
   ]);
   assert.ok(data.skills.every(([, skillPath]) => skillPath.endsWith('/SKILL.md')));
   assert.ok(data.hooks.includes('pre_llm_call'));
-  assert.ok(data.commands.includes('ponytail'));
-  assert.ok(data.commands.includes('ponytail-review'));
+  assert.ok(data.commands.includes('lazy'));
+  assert.ok(data.commands.includes('lazy-review'));
 });
 
 test('Hermes plugin builds mode-aware injected context from the canonical skill', () => {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ponytail-config-'));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'lazy-config-'));
   const output = python(String.raw`
 import importlib.util, json
-spec = importlib.util.spec_from_file_location('ponytail_hermes_plugin', '__init__.py')
+spec = importlib.util.spec_from_file_location('lazy_hermes_plugin', '__init__.py')
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 ctx = mod.build_injected_context('ultra')
@@ -114,12 +114,12 @@ print(json.dumps({'ctx': ctx}))
 });
 
 test('Hermes mode config respects env, config file, off, and invalid command behavior', () => {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ponytail-config-'));
-  fs.mkdirSync(path.join(tmp, 'ponytail'), { recursive: true });
-  fs.writeFileSync(path.join(tmp, 'ponytail', 'config.json'), JSON.stringify({ defaultMode: 'lite' }));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'lazy-config-'));
+  fs.mkdirSync(path.join(tmp, 'lazy'), { recursive: true });
+  fs.writeFileSync(path.join(tmp, 'lazy', 'config.json'), JSON.stringify({ defaultMode: 'lite' }));
   const output = python(String.raw`
 import importlib.util, json
-spec = importlib.util.spec_from_file_location('ponytail_hermes_plugin', '__init__.py')
+spec = importlib.util.spec_from_file_location('lazy_hermes_plugin', '__init__.py')
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 class Ctx:
@@ -130,9 +130,9 @@ class Ctx:
         self.commands[name] = handler
 ctx = Ctx()
 mod.register(ctx)
-status_before = ctx.commands['ponytail']('')
-invalid = ctx.commands['ponytail']('maximum')
-status_after = ctx.commands['ponytail']('')
+status_before = ctx.commands['lazy']('')
+invalid = ctx.commands['lazy']('maximum')
+status_after = ctx.commands['lazy']('')
 print(json.dumps({
     'default': mod.build_injected_context(None),
     'off': mod.build_injected_context('off'),
@@ -144,15 +144,15 @@ print(json.dumps({
   const data = JSON.parse(output);
   assert.match(data.default, /level: ultra/);
   assert.equal(data.off, '');
-  assert.match(data.status_before, /Ponytail mode: ultra/);
+  assert.match(data.status_before, /Lazy LLM mode: ultra/);
   assert.match(data.invalid, /Usage:/);
-  assert.match(data.status_after, /Ponytail mode: ultra/);
+  assert.match(data.status_after, /Lazy LLM mode: ultra/);
 });
 
 test('Hermes plugin review mode injects the real review skill body', () => {
   const output = python(String.raw`
 import importlib.util, json
-spec = importlib.util.spec_from_file_location('ponytail_hermes_plugin', '__init__.py')
+spec = importlib.util.spec_from_file_location('lazy_hermes_plugin', '__init__.py')
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 ctx = mod.build_injected_context('review')
@@ -165,10 +165,10 @@ print(json.dumps({'ctx': ctx}))
   assert.doesNotMatch(ctx, /^---/);
 });
 
-test('Hermes /ponytail command changes mode and pre_llm_call injects current context', () => {
+test('Hermes /lazy command changes mode and pre_llm_call injects current context', () => {
   const output = python(String.raw`
 import importlib.util, json
-spec = importlib.util.spec_from_file_location('ponytail_hermes_plugin', '__init__.py')
+spec = importlib.util.spec_from_file_location('lazy_hermes_plugin', '__init__.py')
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 class Ctx:
@@ -181,7 +181,7 @@ class Ctx:
         self.commands[name] = handler
 ctx = Ctx()
 mod.register(ctx)
-message = ctx.commands['ponytail']('ultra')
+message = ctx.commands['lazy']('ultra')
 injected = ctx.hooks['pre_llm_call'](session_id='s1', user_message='build it', conversation_history=[], is_first_turn=False, model='m', platform='cli')
 print(json.dumps({'message': message, 'context': injected['context']}))
 `);
@@ -193,7 +193,7 @@ print(json.dumps({'message': message, 'context': injected['context']}))
 test('Hermes gateway rewrite respects slash access denial', () => {
   const output = python(String.raw`
 import importlib.util, json
-spec = importlib.util.spec_from_file_location('ponytail_hermes_plugin', '__init__.py')
+spec = importlib.util.spec_from_file_location('lazy_hermes_plugin', '__init__.py')
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 class Source:
@@ -201,7 +201,7 @@ class Source:
     chat_id = 'c1'
     user_id = 'u1'
 class Event:
-    text = '/ponytail-review src/app.js'
+    text = '/lazy-review src/app.js'
     source = Source()
 class Gateway:
     def _check_slash_access(self, source, command):
@@ -215,22 +215,22 @@ print(json.dumps(result))
 test('Hermes gateway rewrite preserves every skill command and ignores unrelated text', () => {
   const output = python(String.raw`
 import importlib.util, json
-spec = importlib.util.spec_from_file_location('ponytail_hermes_plugin', '__init__.py')
+spec = importlib.util.spec_from_file_location('lazy_hermes_plugin', '__init__.py')
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 class Event:
     def __init__(self, text): self.text = text
 cases = {}
-for text in ['/ponytail-review x', '/ponytail_audit repo', '/ponytail-debt', '/ponytail-help', '/status', 'hello']:
+for text in ['/lazy-review x', '/lazy_audit repo', '/lazy-debt', '/lazy-help', '/status', 'hello']:
     cases[text] = mod.rewrite_gateway_command(event=Event(text))
 print(json.dumps(cases, sort_keys=True))
 `);
   const data = JSON.parse(output);
-  assert.match(data['/ponytail-review x'].text, /ponytail-review/);
-  assert.match(data['/ponytail_audit repo'].text, /ponytail-audit/);
-  assert.match(data['/ponytail_audit repo'].text, /repo/);
-  assert.match(data['/ponytail-debt'].text, /ponytail-debt/);
-  assert.match(data['/ponytail-help'].text, /ponytail-help/);
+  assert.match(data['/lazy-review x'].text, /lazy-review/);
+  assert.match(data['/lazy_audit repo'].text, /lazy-audit/);
+  assert.match(data['/lazy_audit repo'].text, /repo/);
+  assert.match(data['/lazy-debt'].text, /lazy-debt/);
+  assert.match(data['/lazy-help'].text, /lazy-help/);
   assert.equal(data['/status'], null);
   assert.equal(data.hello, null);
 });
